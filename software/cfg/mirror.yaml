@@ -1,0 +1,45 @@
+server:
+  mqtt:
+    broker_adress: 127.0.0.1
+    port: 1883
+    channel:
+    username:
+    password:
+    keepalive: 5
+    tls_enables: false
+
+  influx:
+    version: 1.8.10
+    host: 192.168.0.137
+    port: 8086
+    name: spot
+    tags:
+
+
+  flask:
+    secret: mykey
+    templates_auto_reload: True
+
+news:
+  num_news: 5
+  rss_feed: 'https://www.tagesschau.de/infoservices/alle-meldungen-100~rss2.xml'
+  update: 5
+
+spotify:
+  username: zomlbey
+  client_id: cdb0c293fac948d0beb7864e2757e800
+  client_secret: 8572e6fbec7e439281401a9c730fe24a
+  redirect_uri: https://www.google.com/
+  scope: "user-library-read,user-read-currently-playing,user-read-playback-state,playlist-read-private"
+  refresh_token: AQAtWkJn6yhBTnw30YtEk0742jhsIHDSKHyyGe4EOTYrzg2grNjp1yF2xeeTZu_8UuUwW5YHGDIW_F1oxtl11AuCK19d7nLXPpVf72544fwGZkCwH_mhZTV7_2GzhmpPm-A
+  update: 2
+
+weather:
+  city: Erlangen
+  key: 2fb810348b71df638e3d6d0fed4111d8
+  latitude: 49.583332
+  longitude: 11.016667
+  update: 60
+
+clock:
+  update: 1
