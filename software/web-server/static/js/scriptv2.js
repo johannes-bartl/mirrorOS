@@ -1,3 +1,6 @@
+// limit console spam
+let verbose_level = 10
+
 var socket = io();
 
 socket.on('connect', function () {
@@ -13,11 +16,16 @@ const store = Vue.reactive({
     news: {}
 });
 
-socket.on('mqtt_message', function (data) {
+socket.on('rmq', function (data) {
 // Handle MQTT messages here and update the HTML elements
     var topic = data.topic;
     var payload = data.payload;
-    var payloadObj = JSON.parse(payload);
+    var payloadObj = JSON.parse(payload).message;
+    var producer = data.producer;
+
+    if (verbose_level >= 10){
+        console.log(producer, topic, payload)
+    }
 
     // For demonstration, you can update a specific HTML element with the received data
     if (topic == "clock") {
@@ -31,10 +39,9 @@ socket.on('mqtt_message', function (data) {
         }
     }
     if (topic === 'spotify') {
-        for (const key in payloadObj["current_playback"]) {
-            store["spotify"][key] = payloadObj["current_playback"][key];
+        for (const key in payloadObj) {
+            store["spotify"][key] = payloadObj[key];
         }
-        console.log(store)
     }
     // else if (topic == 'weather') {
     //      for (const key in payloadObj["current"]) {
@@ -59,23 +66,32 @@ socket.on('mqtt_message', function (data) {
     // }
 });
 
-const header = Vue.createApp({
+
+const clock = Vue.createApp({
     data(){
-        return store
-    },
-});
-header.mount('.header')
+        return store;
+    }
+})
+clock.mount('#clock')
 
 const spotify = Vue.createApp({
     data(){
         return store
     },
 });
-spotify.mount('.spotify')
+spotify.mount('#spotify')
+
+const weather = Vue.createApp({
+    data(){
+        return store
+    },
+});
+weather.mount('#weather')
 
 const news = Vue.createApp({
     data(){
         return store
     },
 });
-news.mount('.news')
+news.mount('#news')
+

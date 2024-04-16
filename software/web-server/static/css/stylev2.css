@@ -1,3 +1,7 @@
+html {
+    cursor: none;
+}
+
 body {
     background-color: black;
     color: white;
@@ -15,8 +19,9 @@ body {
     align-items: flex-end;
     margin: 0 0 20px 0;
 }
-#current_weather {
+#weather {
     display: flex;
+    flex-direction: row;
     justify-content: flex-end;
 }
 #current_weather_text{
@@ -80,4 +85,6 @@ body {
 }
 .news_img {
     margin: 10px 5px 10px 5px;
+    width: 100%;
+    height: auto;
 }

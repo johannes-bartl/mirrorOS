@@ -1,12 +1,13 @@
 server:
-  mqtt:
-    broker_adress: 127.0.0.1
-    port: 1883
-    channel:
-    username:
-    password:
-    keepalive: 5
-    tls_enables: false
+  rbmq:
+    host: 0.0.0.0
+    port: 5672
+    vhost : "/"
+    exchange : "default"
+    routing_key: "*.data.*"
+    user: "spot"
+    password: "99neumayer"
+    check_interval: 5
 
   influx:
     version: 1.8.10
@@ -17,13 +18,14 @@ server:
 
 
   flask:
-    secret: mykey
+    secret: "spot"
     templates_auto_reload: True
+    template: "indexv2.html"
 
 news:
   num_news: 5
   rss_feed: 'https://www.tagesschau.de/infoservices/alle-meldungen-100~rss2.xml'
-  update: 5
+  update: 60
 
 spotify:
   username: zomlbey
@@ -32,7 +34,7 @@ spotify:
   redirect_uri: https://www.google.com/
   scope: "user-library-read,user-read-currently-playing,user-read-playback-state,playlist-read-private"
   refresh_token: AQAtWkJn6yhBTnw30YtEk0742jhsIHDSKHyyGe4EOTYrzg2grNjp1yF2xeeTZu_8UuUwW5YHGDIW_F1oxtl11AuCK19d7nLXPpVf72544fwGZkCwH_mhZTV7_2GzhmpPm-A
-  update: 2
+  update: 10
 
 weather:
   city: Erlangen

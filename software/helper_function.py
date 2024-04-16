@@ -1,6 +1,6 @@
-import paho.mqtt.client as mqtt
 import yaml
 import sys
+import pika
 
 def parse_dtype(value,type):
     try:
@@ -12,23 +12,17 @@ def str2bool(v):
   return v.lower() in ("yes", "true", "t", "1")
 
 #read yaml config
-def read_yaml(path):
+def read_yaml(path="/home/spot/Software/mirrorOS/software/cfg/mirror.yaml"):
     with open(path, 'r') as stream:
         return yaml.safe_load(stream)
 
+def rbmq_connect():
+    cfg = read_yaml()
+    credentials = pika.PlainCredentials(cfg["server"]["rbmq"]["user"], cfg["server"]["rbmq"]["password"])
+    connection_parameters = pika.ConnectionParameters(cfg["server"]["rbmq"]["host"],
+                                                      cfg["server"]["rbmq"]["port"],
+                                                      cfg["server"]["rbmq"]["vhost"],
+                                                      credentials)
 
-# Create an MQTT client & connect to Broker
-def on_connect(client,userdata,flags,rc):
-    if userdata != None:
-        for topic in userdata["topic"]:
-            client.subscribe(topic)
-            print(f"Subscribed to MQTT topic: {topic}")
 
-def mqtt_connect(cfg,userdata=None):
-    client = mqtt.Client(userdata=userdata)
-    client.on_connect = on_connect
-    conn = client.connect(cfg["server"]["mqtt"]["broker_adress"], int(cfg["server"]["mqtt"]["port"]))
-    if conn == 0:
-        return client
-    else:
-        sys.exit()
+    return pika.BlockingConnection(connection_parameters)

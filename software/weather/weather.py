@@ -1,15 +1,22 @@
 #!/usr/bin/python
-from datetime import datetime
+from datetime import datetime, timezone
 import time
 import requests
 import sys
-sys.path.append('/home/spot/software')
+sys.path.append('/home/spot/Software/mirrorOS/software')
 import helper_function as hf
 import json
+import pika
 
-cfg = hf.read_yaml("/home/spot/software/cfg/mirror.yaml")
+
+cfg = hf.read_yaml()
 auth = f"?lat={cfg['weather']['latitude']}&lon={cfg['weather']['longitude']}&appid={cfg['weather']['key']}"
 url =  f"https://api.openweathermap.org/data/2.5/"
+
+
+exchange = cfg["server"]["rbmq"]["exchange"]
+routing_key = "home.data.weather"
+connection,channel = None,None
 
 def get_json(url):
     response = requests.get(url)
@@ -35,7 +42,7 @@ def get_current():
         day = 0
 
     condition_id = int(current["weather"][0]["id"])
-    print(condition_id)
+
     weather_condition = {
         'thunderstorm': [200, 201, 202, 210, 211, 212, 221, 230, 231, 232],
         'rain': [300, 301, 302, 310, 311, 312, 313, 314, 321, 500, 501, 502, 503, 504, 511, 520, 521, 522, 531],
@@ -64,7 +71,6 @@ def get_current():
         'code': 'clear',
         'day': 0,
     }}
-    print(pub)
     return pub
 
 def get_today():
@@ -74,10 +80,29 @@ def get_week():
 
 
 def get_weather():
-    client = hf.mqtt_connect(cfg)
+    global connection, channel
     while True:
-        client.publish('weather',json.dumps(get_current()))
-        time.sleep(float(cfg["weather"]["update"]))
+        try:
+            if connection == None or not connection.is_open:
+                connection = hf.rbmq_connect()
+
+
+                channel = connection.channel()
+                print('rbmq: connected')
+
+            data = get_current()
+            pub = {
+                'message': data,
+                'time': datetime.now(timezone.utc).isoformat()[:-6] + 'Z'
+            }
+            print(pub)
+            channel.basic_publish(exchange=exchange, routing_key=routing_key, body=json.dumps(pub),
+                                  properties=pika.BasicProperties(delivery_mode=2))
+            time.sleep(float(cfg["weather"]["update"]))
+
+        except Exception as e:
+            print(f'rbmq: error when trying to publish: {e}')
+            time.sleep(int(cfg["server"]["rbmq"]["check_interval"]))
 
 if __name__ == "__main__":
     get_weather()

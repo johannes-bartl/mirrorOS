@@ -1,65 +1,90 @@
 #!/usr/bin/python
+from gevent import monkey
+monkey.patch_all(Event=False)
 import json
 import os
+import pika
 import sys
-import eventlet
 from flask import Flask, render_template, request, jsonify
 from flask_bootstrap import Bootstrap
-from flask_mqtt import Mqtt
 from flask_socketio import SocketIO
+import argparse
+import time
+from threading import Thread
+from datetime import datetime, timezone
+connection,channel = None, None
+sys.path.append('/home/spot/Software/mirrorOS/software')
 
-sys.path.append('/home/spot/software')
-print(sys.path)
 import helper_function as hf
-
-cfg = hf.read_yaml("/home/spot/software/cfg/mirror.yaml")
-
-eventlet.monkey_patch()
+cfg = hf.read_yaml()
 
 app = Flask(__name__)
 app.config['SECRET'] = cfg["server"]["flask"]["secret"]
 app.config['TEMPLATES_AUTO_RELOAD'] = cfg["server"]["flask"]["templates_auto_reload"]
-app.config['MQTT_BROKER_URL'] = cfg["server"]["mqtt"]["broker_adress"]
-app.config['MQTT_BROKER_PORT'] = int(cfg["server"]["mqtt"]["port"])  # default port for non-tls connection
-app.config['MQTT_USERNAME'] = cfg["server"]["mqtt"]["username"]  # set the username here if you need authentication for the broker
-app.config['MQTT_PASSWORD'] = cfg["server"]["mqtt"]["password"]  # set the password here if the broker demands authentication
-app.config['MQTT_KEEPALIVE'] = int(cfg["server"]["mqtt"]["keepalive"])  # set the time interval for sending a ping to the broker to 5 seconds
-app.config['MQTT_TLS_ENABLED'] = cfg["server"]["mqtt"]["tls_enables"]  # set TLS to disabled for testing purposes
 
-mqtt = Mqtt(app)
-socketio = SocketIO(app)
+socketio = SocketIO(app, async_mode='gevent', cors_allowed_origins='*')
 bootstrap = Bootstrap(app)
+
+parser = argparse.ArgumentParser(description="Host a webserver: mirrorOS webpage")
+parser.add_argument('-v','--verbose', action='store_true', help="enable verbose mode", default=False, dest="verbose")
+args = parser.parse_args()
+
+
+def add_time(message):
+    pub = {
+        'message': message,
+        'time': datetime.now(timezone.utc).isoformat()[:-6] + 'Z'
+    }
+    return pub
 
 @app.route('/')
 def index():
-    return render_template('indexv2.html')
+    return render_template(cfg["server"]["flask"]["template"])
 
 @socketio.on('subscribe')
 def handle_subscribe():
-    topic = ["weather","spotify","news","clock"]
-    for t in topic: mqtt.subscribe(t);
+    pass
 
-@socketio.on('unsubscribe_all')
-def handle_unsubscribe_all():
-    mqtt.unsubscribe_all()
+@socketio.on('disconnect')
+def handle_disconnect():
+    print('disconnect')
+    pass
 
-@mqtt.on_message()
-def handle_mqtt_message(client, userdata, message):
-    print(message)
+def callback(ch, method, properties, body):
+    producer,information,topic = method.routing_key.split(".")
     data = dict(
-        topic=message.topic,
-        payload=message.payload.decode()
+        topic=topic,
+        payload=body.decode("utf-8"),
+        producer=producer
     )
-    print(data,'-------------------------')
-    socketio.emit('mqtt_message', data=data)
+    if args.verbose:
+        print(f'Incoming {information} message: {data}')
+    socketio.emit('rmq', data=data)
 
 
+def consume_messages():
+    global connection, channel, queue
+    while True:
+        try:
+            if connection == None or not connection.is_open:
+                connection = hf.rbmq_connect()
+                channel = connection.channel()
+                queue = channel.queue_declare(queue="webserver", durable=True,
+                                              arguments={'x-max-length': 1})
+                channel.queue_bind(exchange=cfg["server"]["rbmq"]["exchange"], queue=queue.method.queue,
+                                   routing_key=cfg["server"]["rbmq"]["routing_key"])
 
-# @mqtt.on_log()
-# def handle_logging(client, userdata, level, buf):
-#     print(level, buf)
-
-
+                channel.basic_consume(queue=queue.method.queue, on_message_callback=callback, auto_ack=True)
+                channel.start_consuming()
+                print('rabbitmq Meta: Start consuming!')
+        except Exception as e:
+            print(f'rbmq: error when trying to consume: {e}')
+            time.sleep(int(cfg["server"]["rbmq"]["check_interval"]))
 
 if __name__ == '__main__':
-    socketio.run(app, host='192.168.0.138', port=80, use_reloader=False, debug=True)
+    print("starting thread 1")
+    consumer_thread = Thread(target=consume_messages)
+    consumer_thread.start()
+
+    socketio.run(app, host='0.0.0.0', port=80, use_reloader=False, debug=True)
+

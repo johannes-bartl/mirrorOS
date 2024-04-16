@@ -1,19 +1,22 @@
 #!/usr/bin/python
 import spotipy
 import sys
-sys.path.append('/home/spot/software')
+sys.path.append('/home/spot/Software/mirrorOS/software')
 import helper_function as hf
 import yaml
-import datetime
+from datetime import datetime,timezone
 import time
 import json
 import os
-os.chdir('/home/spot/software/spotify')
+import pika
 
-cfg_path = "/home/spot/software/cfg/mirror.yaml"
-cfg = hf.read_yaml(cfg_path)
+os.chdir('/home/spot/Software/mirrorOS/software/spotify')
+
+cfg = hf.read_yaml()
 lcfg = cfg["spotify"] #access local config for spotify
 
+connection,channel = None, None
+routing_key = "home.data.spotify"
 
 auth = {
     'CLIENT_ID': lcfg['client_id'],
@@ -47,45 +50,58 @@ def authorize(auth,cfg):
         return token_info
 
     elif token_info:
-        if token_info["expires_at"]-datetime.datetime.now().timestamp() < 10:
+        if token_info["expires_at"]-datetime.now().timestamp() < 10:
             print('Refresh Token')
             return auth_manger.refresh_access_token(token_info["refresh_token"])
         else:
             return token_info
 
 def get_spotify():
-    client = hf.mqtt_connect(cfg)
+    global connection
     while True:
+        try:
+            if connection == None or not connection.is_open:
+                connection = hf.rbmq_connect()
 
-        #currently playing
-        token_info = authorize(auth,cfg)
-        sp = spotipy.Spotify(auth=token_info["access_token"])
-        cp = sp.current_playback()
-        print(cp)
-        if cp != None:
-            current_playback = {
-                'now_playing': 1,
-                'device_name': cp["device"]["name"],
-                'device_type': cp["device"]["type"],
-                'shuffle_state': cp["shuffle_state"],
-                'repeat_state': cp["repeat_state"],
-                'type': cp["context"]["type"],
-                'progress_ms': cp["progress_ms"],
-                'duration': cp["item"]["duration_ms"],
-                'artists': cp["item"]["artists"][0]["name"],
-                'progress': 100 * float(cp["progress_ms"] / cp["item"]["duration_ms"]),
-                'cover_img': cp["item"]["album"]["images"][0]["url"],
-                'title': cp["item"]["name"]
+                channel = connection.channel()
+                print('rbmq: connected')
+
+            #currently playing
+            token_info = authorize(auth,cfg)
+            sp = spotipy.Spotify(auth=token_info["access_token"])
+            cp = sp.current_playback()
+            print(cp)
+            if cp != None:
+                current_playback = {
+                    'now_playing': 1,
+                    'device_name': cp["device"]["name"],
+                    'device_type': cp["device"]["type"],
+                    'shuffle_state': cp["shuffle_state"],
+                    'repeat_state': cp["repeat_state"],
+                    'type': cp["context"]["type"],
+                    'progress_ms': cp["progress_ms"],
+                    'duration': cp["item"]["duration_ms"],
+                    'artists': cp["item"]["artists"][0]["name"],
+                    'progress': 100 * float(cp["progress_ms"] / cp["item"]["duration_ms"]),
+                    'cover_img': cp["item"]["album"]["images"][0]["url"],
+                    'title': cp["item"]["name"]
+                }
+            else:
+                current_playback = {
+                    'now_playing': 0
+                }
+
+            pub = {
+                'message': current_playback,
+                'time': datetime.now(timezone.utc).isoformat()[:-6] + 'Z'
             }
-        else:
-            current_playback = {
-                'now_playing': 0
-            }
+            channel.basic_publish(exchange=cfg["server"]["rbmq"]["exchange"], routing_key=routing_key, body=json.dumps(pub),
+                                  properties=pika.BasicProperties(delivery_mode=2))
+            time.sleep(float(cfg["spotify"]["update"]))
 
-        pub = {'current_playback':current_playback}
-        client.publish("spotify", json.dumps(pub))
-        time.sleep(float(cfg["spotify"]["update"]))
-
+        except Exception as e:
+            print(f'rbmq: error when trying to publish: {e}')
+            time.sleep(int(cfg["server"]["rbmq"]["check_interval"]))
 if __name__ == "__main__":
     get_spotify()
 
