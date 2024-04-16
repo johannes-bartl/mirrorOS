@@ -1,0 +1,1 @@
+MirrorOS: Os runinng on custom smart mirror
