@@ -12,105 +12,108 @@
         <div class="container">
             <div id="left">
                 <div id="clock">
-                    <div id="time">{{"{{clock.time}}"}}</div>
-                    <div id="date">{{"{{clock.date}}"}}</div>
-                    <div id="clock_progress" class="progress">
-                        <div id="clock_progress_line" class="progress_line"></div>
-                        <div id="clock_progress_dot" class="progress_dot"  v-if="progress!==-1" :style="{left: progress + '%'}"></div>
+                    <div v-if="clock.time !== undefined">
+                        <div id="time">{{"{{clock.time}}"}}</div>
+                        <div id="date">{{"{{clock.date}}"}}</div>
+                        <div id="clock_progress" class="progress" v-if="current_weather.temp_c !== undefined">
+                            <div id="clock_progress_line" class="progress_line"></div>
+                            <div id="clock_progress_dot" class="progress_dot"  v-if="current_weather.progress!==-1" :style="{left:current_weather.progress + '%'}"></div>
+                        </div>
                     </div>
                 </div>
-
                 <div id="weather">
-                    <div id="temperature">{{"{{temp_c}}"}} ° C</div>
-                    <div id="temperature_range">Tags: {{"{{temp_max_c}}"}} • Nachts: {{"{{temp_min_c}}"}} </div>
-                    <div id="wind">Wind: {{"{{wind}}"}} m/s</div>
-                    <div id="icon">
-                        <div class="icon_container" v-if="day===1 && code==='clear'">
-                            <div class = 'sun'></div>
-                        </div>
-                        <div class="icon_container" v-if="day===0 && code==='clear'">
-                            <div class="moon_disk"></div>
-                            <div class="moon_occultation"></div>
-                            <div class="star star_s star_1"></div>
-                            <div class="star star_s star_2"></div>
-                            <div class="star star_m star_3"></div>
-                            <div class="star star_s star_4"></div>
-                        </div>
-                        <div class="icon_container" v-if="code==='clouds'">
-                            <div class="cloud_1_main"></div>
-                            <div class="cloud_2_main"></div>
-                            <div class="cloud_1_sec"></div>
-                            <div class="cloud_2_sec"></div>
-                        </div>
-                        <div class="icon_container" v-if="day===1 && code==='few_clouds'">
-                            <div class="sun"></div>
-                            <div class="cloud_2_main"></div>
-                            <div class="cloud_2_sec"></div>
-                        </div>
-                        <div class="icon_container" v-if="day===0 && code==='few_clouds'">
-                            <div class="moon_disk"></div>
-                            <div class="moon_occultation"></div>
-                            <div class="star star_s star_1"></div>
-                            <div class="star star_s star_2"></div>
-                            <div class="star star_m star_3"></div>
-                            <div class="star star_s star_4"></div>
-                            <div class="cloud_2_main"></div>
-                            <div class="cloud_2_sec"></div>
-                        </div>
-                        <div class="icon_container" v-if="code==='thunderstorm'" >
-                            <div class="cloud_1_main_storm"></div>
-                            <div class="cloud_1_sec_storm"></div>
-                            <div class="cloud_2_main_storm"></div>
-                            <div class="thunder"></div>
-                            <div class="thunder_occultation"></div>
-                            <div class="bolt_"></div>
-                            <div class="bolt_occultation"></div>
-                        </div>
-                        <div class="icon_container" v-if="code==='rain'">
-                            <div class="cloud_1_main_storm"></div>
-                            <div class="cloud_1_sec_storm"></div>
-                            <div class="cloud_2_main_storm"></div>
-                            <div class="rain_drop_1 rain_drop"></div>
-                            <div class="rain_drop_2 rain_drop"></div>
-                            <div class="rain_drop_3 rain_drop"></div>
-                            <div class="rain_drop_4 rain_drop"></div>
-                            <div class="rain_drop_5 rain_drop"></div>
-                        </div>
-                        <div class="icon_container" v-if="code==='snow'">
-                            <div class="cloud_1_main_storm"></div>
-                            <div class="cloud_1_sec_storm"></div>
-                            <div class="cloud_2_main_storm"></div>
-                            <div class="flake_1 flake"></div>
-                            <div class="flake_2 flake"></div>
-                            <div class="flake_3 flake"></div>
-                            <div class="flake_4 flake"></div>
-                            <div class="flake_5 flake"></div>
-                            <div class="flake_6 flake"></div>
-                        </div>
-                        <div class="icon_container" v-if="code==='atmosphere'">
-                            <div class="fog_1 fog"></div>
-                            <div class="fog_2 fog"></div>
-                            <div class="fog_3 fog"></div>
-                            <div class="fog_4 fog"></div>
-                            <div class="fog_5 fog"></div>
-                            <div class="fog_6 fog"></div>
-                            <div class="fog_7 fog"></div>
-                        </div>
-        <!--            <div id="condition"></div>-->
+                    <div v-if="current_weather.temp_c !== undefined" id="weather_container">
+                        <div id="temperature">{{"{{current_weather.temp_c}}"}} ° C</div>
+                        <div id="temperature_range">Tags: {{"{{current_weather.temp_max_c}}"}} • Nachts: {{"{{current_weather.temp_min_c}}"}} </div>
+                        <div id="wind">Wind: {{"{{current_weather.wind}}"}} m/s</div>
+                        <div id="icon">
+                            <div class="icon_container" v-if="current_weather.day===1 && current_weather.code==='clear'">
+                                <div class = 'sun'></div>
+                            </div>
+                            <div class="icon_container" v-if="current_weather.day===0 && current_weather.code==='clear'">
+                                <div class="moon_disk"></div>
+                                <div class="moon_occultation"></div>
+                                <div class="star star_s star_1"></div>
+                                <div class="star star_s star_2"></div>
+                                <div class="star star_m star_3"></div>
+                                <div class="star star_s star_4"></div>
+                            </div>
+                            <div class="icon_container" v-if="current_weather.code==='clouds'">
+                                <div class="cloud_1_main"></div>
+                                <div class="cloud_2_main"></div>
+                                <div class="cloud_1_sec"></div>
+                                <div class="cloud_2_sec"></div>
+                            </div>
+                            <div class="icon_container" v-if="current_weather.day===1 && current_weather.code==='few_clouds'">
+                                <div class="sun"></div>
+                                <div class="cloud_2_main"></div>
+                                <div class="cloud_2_sec"></div>
+                            </div>
+                            <div class="icon_container" v-if="current_weather.day===0 && current_weather.code==='few_clouds'">
+                                <div class="moon_disk"></div>
+                                <div class="moon_occultation"></div>
+                                <div class="star star_s star_1"></div>
+                                <div class="star star_s star_2"></div>
+                                <div class="star star_m star_3"></div>
+                                <div class="star star_s star_4"></div>
+                                <div class="cloud_2_main"></div>
+                                <div class="cloud_2_sec"></div>
+                            </div>
+                            <div class="icon_container" v-if="current_weather.code==='thunderstorm'" >
+                                <div class="cloud_1_main_storm"></div>
+                                <div class="cloud_1_sec_storm"></div>
+                                <div class="cloud_2_main_storm"></div>
+                                <div class="thunder"></div>
+                                <div class="thunder_occultation"></div>
+                                <div class="bolt_"></div>
+                                <div class="bolt_occultation"></div>
+                            </div>
+                            <div class="icon_container" v-if="current_weather.code==='rain'">
+                                <div class="cloud_1_main_storm"></div>
+                                <div class="cloud_1_sec_storm"></div>
+                                <div class="cloud_2_main_storm"></div>
+                                <div class="rain_drop_1 rain_drop"></div>
+                                <div class="rain_drop_2 rain_drop"></div>
+                                <div class="rain_drop_3 rain_drop"></div>
+                                <div class="rain_drop_4 rain_drop"></div>
+                                <div class="rain_drop_5 rain_drop"></div>
+                            </div>
+                            <div class="icon_container" v-if="current_weather.code==='snow'">
+                                <div class="cloud_1_main_storm"></div>
+                                <div class="cloud_1_sec_storm"></div>
+                                <div class="cloud_2_main_storm"></div>
+                                <div class="flake_1 flake"></div>
+                                <div class="flake_2 flake"></div>
+                                <div class="flake_3 flake"></div>
+                                <div class="flake_4 flake"></div>
+                                <div class="flake_5 flake"></div>
+                                <div class="flake_6 flake"></div>
+                            </div>
+                            <div class="icon_container" v-if="current_weather.code==='atmosphere'">
+                                <div class="fog_1 fog"></div>
+                                <div class="fog_2 fog"></div>
+                                <div class="fog_3 fog"></div>
+                                <div class="fog_4 fog"></div>
+                                <div class="fog_5 fog"></div>
+                                <div class="fog_6 fog"></div>
+                                <div class="fog_7 fog"></div>
+                            </div>
+            <!--            <div id="condition"></div>-->
 
+                        </div>
                     </div>
                 </div>
             </div>
             <div id="middle">
                 <div id="spotify">
-                    <div id="cover" v-if="now_playing===1">
-                        <img :src="cover_img">
+                    <div id="cover" v-if="spotify.now_playing===1">
+                        <img :src="spotify.cover_img">
                     </div>
-                    <div id="title" v-if="now_playing===1">{{"{{title}}"}}</div>
-                    <div id="artists" v-if="now_playing===1">{{"{{artists}}"}}</div>
-                    <div id="spotify_progress" class="progress" v-if="now_playing===1">
+                    <div id="title" v-if="spotify.now_playing===1">{{"{{spotify.title}}"}}</div>
+                    <div id="artists" v-if="spotify.now_playing===1">{{"{{spotify.artists}}"}}</div>
+                    <div id="spotify_progress" class="progress" v-if="spotify.now_playing===1">
                         <div id="spotify_progress_line" class="progress_line"></div>
-                        <div id="spotify_progress_dot" class="progress_dot" :style="{left: progress + '%'}"></div>
+                        <div id="spotify_progress_dot" class="progress_dot" :style="{left: spotify.progress + '%'}"></div>
                     </div>
                 </div>
             </div>

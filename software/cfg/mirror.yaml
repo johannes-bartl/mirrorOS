@@ -20,7 +20,7 @@ server:
   flask:
     secret: "spot"
     templates_auto_reload: True
-    template: "indexv2.html"
+    template: "index.html"
 
 news:
   num_news: 5
